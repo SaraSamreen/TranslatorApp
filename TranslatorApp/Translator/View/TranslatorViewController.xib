@@ -10,9 +10,11 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TranslatorViewController" customModule="TranslatorApp" customModuleProvider="target">
             <connections>
+                <outlet property="inputCardLanguageLabel" destination="PWM-cV-vHH" id="rLp-6Z-ikf"/>
                 <outlet property="inputCardView" destination="taU-JZ-REw" id="MUw-YF-tHb"/>
                 <outlet property="inputPlaceholderLabel" destination="iQ2-Fk-qk3" id="vKA-Do-oUt"/>
                 <outlet property="inputTextView" destination="GZC-kB-dv8" id="Qj7-db-HJV"/>
+                <outlet property="outputCardLanguageLabel" destination="Uzh-iy-NSd" id="feH-xz-Ts7"/>
                 <outlet property="outputCardView" destination="7Ol-k5-2Hu" id="mP5-TY-pQh"/>
                 <outlet property="outputPlaceholderLabel" destination="esI-nr-2jp" id="qPk-cB-LNi"/>
                 <outlet property="outputTextView" destination="yPD-6f-VCu" id="KXh-Lf-plE"/>

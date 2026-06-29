@@ -5,7 +5,15 @@
 //  Created by Mac on 23/06/2026.
 //
 
+//
+//  TranslatorViewController.swift
+//  TranslatorApp
+//
+//  Created by Mac on 23/06/2026.
+//
+
 import UIKit
+import MLKitTranslate
 
 class TranslatorViewController: UIViewController, UITextViewDelegate {
 
@@ -19,38 +27,55 @@ class TranslatorViewController: UIViewController, UITextViewDelegate {
     @IBOutlet weak var targetLanguageLabel: UILabel!
     @IBOutlet weak var inputPlaceholderLabel: UILabel!
     @IBOutlet weak var outputPlaceholderLabel: UILabel!
+    @IBOutlet weak var inputCardLanguageLabel: UILabel!   
+    @IBOutlet weak var outputCardLanguageLabel: UILabel!
 
-    private let availableLanguages: [(name: String, code: String)] = [
-        ("English", "en"),
-        ("Spanish", "es"),
-        ("French", "fr"),
-        ("German", "de"),
-        ("Italian", "it"),
-        ("Portuguese", "pt"),
-        ("Urdu", "ur"),
-        ("Hindi", "hi"),
-        ("Arabic", "ar"),
-        ("Chinese", "zh"),
-        ("Japanese", "ja"),
-        ("Russian", "ru")
+
+    private let availableLanguages: [(name: String, language: TranslateLanguage)] = [
+        ("English", .english),
+        ("Spanish", .spanish),
+        ("French", .french),
+        ("German", .german),
+        ("Italian", .italian),
+        ("Portuguese", .portuguese),
+        ("Urdu", .urdu),
+        ("Hindi", .hindi),
+        ("Arabic", .arabic),
+        ("Chinese", .chinese),
+        ("Japanese", .japanese),
+        ("Russian", .russian),
+        ("Korean", .korean),
+        ("Turkish", .turkish),
+        ("Dutch", .dutch),
+        ("Polish", .polish),
+        ("Vietnamese", .vietnamese),
+        ("Thai", .thai),
+        ("Indonesian", .indonesian),
+        ("Bengali", .bengali),
+        ("Persian", .persian),
+        ("Greek", .greek),
+        ("Hebrew", .hebrew),
+        ("Swedish", .swedish),
+        ("Ukrainian", .ukrainian)
     ]
 
-    private var sourceLanguageCode = "en"
-    private var targetLanguageCode = "es"
-
-    private let googleAPIKey = "AIzaSyCSKgSOOavp9vbYIy2vHnBxXQN2_URjWZE"
+    private var sourceLanguage: TranslateLanguage = .english
+    private var targetLanguage: TranslateLanguage = .spanish
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         inputTextView.delegate = self
         outputTextView.delegate = self
-        
+
         view.backgroundColor = .white
         setupCornerRadius()
         setupLanguageTapGestures()
+        
+        inputCardLanguageLabel.text = availableLanguages.first(where: { $0.language == sourceLanguage })?.name
+        outputCardLanguageLabel.text = availableLanguages.first(where: { $0.language == targetLanguage })?.name
     }
-    
+
     func textViewDidChange(_ textView: UITextView) {
         if textView == inputTextView {
             inputPlaceholderLabel.isHidden = !textView.text.isEmpty
@@ -58,7 +83,7 @@ class TranslatorViewController: UIViewController, UITextViewDelegate {
             outputPlaceholderLabel.isHidden = !textView.text.isEmpty
         }
     }
-    
+
     private func setupCornerRadius() {
         pillView.layer.cornerRadius = 30
         inputCardView.layer.cornerRadius = 16
@@ -79,20 +104,22 @@ class TranslatorViewController: UIViewController, UITextViewDelegate {
     @objc private func sourceLanguageTapped() {
         presentLanguagePicker(title: "Translate from") { [weak self] selected in
             guard let self = self else { return }
-            self.sourceLanguageCode = selected.code
+            self.sourceLanguage = selected.language
             self.sourceLanguageLabel.text = selected.name
+            self.inputCardLanguageLabel.text = selected.name
         }
     }
 
     @objc private func targetLanguageTapped() {
         presentLanguagePicker(title: "Translate to") { [weak self] selected in
             guard let self = self else { return }
-            self.targetLanguageCode = selected.code
+            self.targetLanguage = selected.language
             self.targetLanguageLabel.text = selected.name
+            self.outputCardLanguageLabel.text = selected.name
         }
     }
 
-    private func presentLanguagePicker(title: String, onSelect: @escaping ((name: String, code: String)) -> Void) {
+    private func presentLanguagePicker(title: String, onSelect: @escaping ((name: String, language: TranslateLanguage)) -> Void) {
         let alert = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
 
         for language in availableLanguages {
@@ -114,54 +141,39 @@ class TranslatorViewController: UIViewController, UITextViewDelegate {
 
     @IBAction func translateButtonTapped(_ sender: UIButton) {
         guard let textToTranslate = inputTextView.text, !textToTranslate.isEmpty else { return }
-        translate(text: textToTranslate, from: sourceLanguageCode, to: targetLanguageCode) { [weak self] result in
+
+        outputTextView.text = "Translating..."
+        outputPlaceholderLabel.isHidden = true
+        translateButton.isEnabled = false
+
+        translate(text: textToTranslate, from: sourceLanguage, to: targetLanguage) { [weak self] result in
             DispatchQueue.main.async {
+                self?.translateButton.isEnabled = true
                 self?.outputTextView.text = result
                 self?.outputPlaceholderLabel.isHidden = !result.isEmpty
             }
         }
     }
 
-    private func translate(text: String, from sourceLang: String, to targetLang: String, completion: @escaping (String) -> Void) {
-        guard let url = URL(string: "https://translation.googleapis.com/language/translate/v2?key=\(googleAPIKey)") else {
-            completion("Error: could not build request")
-            return
-        }
+    private func translate(text: String, from sourceLang: TranslateLanguage, to targetLang: TranslateLanguage, completion: @escaping (String) -> Void) {
+        let options = TranslatorOptions(sourceLanguage: sourceLang, targetLanguage: targetLang)
+        let translator = Translator.translator(options: options)
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let conditions = ModelDownloadConditions(allowsCellularAccess: true, allowsBackgroundDownloading: true)
 
-        let body: [String: Any] = [
-            "q": text,
-            "source": sourceLang,
-            "target": targetLang,
-            "format": "text"
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                completion("Error: \(error?.localizedDescription ?? "unknown")")
+        translator.downloadModelIfNeeded(with: conditions) { error in
+            if let error = error {
+                completion("Error downloading language model: \(error.localizedDescription)")
                 return
             }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let dataDict = json["data"] as? [String: Any],
-                   let translations = dataDict["translations"] as? [[String: Any]],
-                   let first = translations.first,
-                   let translatedText = first["translatedText"] as? String {
-                    completion(translatedText)
-                } else if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let errorDict = json["error"] as? [String: Any],
-                          let message = errorDict["message"] as? String {
-                    completion("API Error: \(message)")
-                } else {
-                    completion("Error: unexpected response")
+
+            translator.translate(text) { translatedText, error in
+                if let error = error {
+                    completion("Translation error: \(error.localizedDescription)")
+                    return
                 }
-            } catch {
-                completion("Error: \(error.localizedDescription)")
+                completion(translatedText ?? "Error: no translation returned")
             }
-        }.resume()
+        }
     }
 }
