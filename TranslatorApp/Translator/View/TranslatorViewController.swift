@@ -7,7 +7,7 @@
 
 import UIKit
 
-class TranslatorViewController: UIViewController {
+class TranslatorViewController: UIViewController, UITextViewDelegate {
 
     @IBOutlet weak var inputTextView: UITextView!
     @IBOutlet weak var outputTextView: UITextView!
@@ -17,6 +17,8 @@ class TranslatorViewController: UIViewController {
     @IBOutlet weak var outputCardView: UIView!
     @IBOutlet weak var sourceLanguageLabel: UILabel!
     @IBOutlet weak var targetLanguageLabel: UILabel!
+    @IBOutlet weak var inputPlaceholderLabel: UILabel!
+    @IBOutlet weak var outputPlaceholderLabel: UILabel!
 
     private let availableLanguages: [(name: String, code: String)] = [
         ("English", "en"),
@@ -40,11 +42,23 @@ class TranslatorViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        inputTextView.delegate = self
+        outputTextView.delegate = self
+        
         view.backgroundColor = .white
         setupCornerRadius()
         setupLanguageTapGestures()
     }
-
+    
+    func textViewDidChange(_ textView: UITextView) {
+        if textView == inputTextView {
+            inputPlaceholderLabel.isHidden = !textView.text.isEmpty
+        } else if textView == outputTextView {
+            outputPlaceholderLabel.isHidden = !textView.text.isEmpty
+        }
+    }
+    
     private func setupCornerRadius() {
         pillView.layer.cornerRadius = 30
         inputCardView.layer.cornerRadius = 16
@@ -103,6 +117,7 @@ class TranslatorViewController: UIViewController {
         translate(text: textToTranslate, from: sourceLanguageCode, to: targetLanguageCode) { [weak self] result in
             DispatchQueue.main.async {
                 self?.outputTextView.text = result
+                self?.outputPlaceholderLabel.isHidden = !result.isEmpty
             }
         }
     }
