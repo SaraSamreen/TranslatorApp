@@ -54,6 +54,7 @@ class TranslatorViewController: UIViewController, UITextViewDelegate {
         ("Bengali", .bengali),
         ("Persian", .persian),
         ("Greek", .greek),
+        ("Hebrew", .hebrew),
         ("Swedish", .swedish),
         ("Ukrainian", .ukrainian)
     ]
